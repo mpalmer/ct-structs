@@ -1,0 +1,28 @@
+[package]
+name = "ct-structs"
+description = "Tool to quickly and reliably mass-download entries from a Certificate Transparency log"
+license = "GPL-3.0-only"
+homepage = "https://github.com/mpalmer/scrape-ct-log"
+repository = "https://github.com/mpalmer/scrape-ct-log"
+keywords = ["security", "tls", "ssl", "https", "certificate"]
+categories = ["api-bindings", "data-structures", "encoding"]
+include = [
+        "/LICENCE",
+        "/src/*.rs",
+]
+version = "0.0.0-git"
+authors = ["Matt Palmer <matt@hezmatt.org>"]
+edition = "2021"
+
+[features]
+parse-tracing = ["deku/logging", "dep:log"]
+
+[dependencies]
+base64 = "0.21"
+#deku = "0.16"
+deku = { git = "https://github.com/mpalmer/deku", branch = "id-endian" }
+log = { version = "0.4", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+stderrlog = "0.5"
