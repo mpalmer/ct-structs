@@ -39,7 +39,8 @@ jobs:
 
       - name: Audit deps
         run: |
-          cargo audit -D warnings
+          # atty advisory, transitive dev-only dependency
+          cargo audit -D warnings --ignore RUSTSEC-2021-0145
 
   nightly_compat:
     name: See if future Rust versions (or deps) will break anything
