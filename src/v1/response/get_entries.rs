@@ -4,6 +4,7 @@ use serde::{
 	de::{self, Error as _, MapAccess, Visitor},
 	Deserialize, Deserializer, Serialize,
 };
+use std::any::type_name;
 
 use super::super::{ExtraData, MerkleTreeLeaf, SignedEntry, TreeLeafEntry};
 use crate::utils::b64_deku;
@@ -55,9 +56,9 @@ impl<'de> Visitor<'de> for ResponseEntryVisitor {
 				Ok(((&[], 0), xd)) => Ok(xd),
 				Ok(_) => Err(E::custom(format!(
 					"malformed {}: trailing bytes",
-					stringify!(T)
+					type_name::<T>()
 				))),
-				Err(e) => Err(E::custom(format!("malformed X509 extra_data: {e}"))),
+				Err(e) => Err(E::custom(format!("malformed {}: {e}", type_name::<T>()))),
 			}
 		}
 
@@ -114,5 +115,57 @@ impl<'de> Deserialize<'de> for ResponseEntry {
 		D: Deserializer<'de>,
 	{
 		deserializer.deserialize_map(ResponseEntryVisitor::new())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::utils::test::setup;
+	use base64::engine::general_purpose::STANDARD as b64;
+use x509_parser::{certificate::X509Certificate, prelude::FromDer as _};
+
+	#[test]
+	fn correctly_decodes_x509_entry() {
+		setup();
+
+		let json_entries = format!(r#"{{"entries":[{{"leaf_input":"{}","extra_data":"{}"}}]}}"#, b64.encode(include_bytes!("../test_vectors/x509_merkle_tree_leaf")), b64.encode(include_bytes!("../test_vectors/x509_extra_data")));
+
+		let decoded_entries: GetEntries = serde_json::from_str(&json_entries).unwrap();
+		let TreeLeafEntry::TimestampedEntry(te_entry) = &decoded_entries.entries[0].leaf_input.entry;
+		assert_eq!(1666198004098, te_entry.timestamp);
+		if let SignedEntry::X509Entry(signed_entry) = &te_entry.signed_entry {
+			let (_rest, cert) = X509Certificate::from_der(&signed_entry.certificate).unwrap();
+			assert_eq!("CN=crt.sh", cert.subject().to_string());
+		} else {
+			panic!("signed_entry was not X509Entry");
+		}
+	}
+
+	#[test]
+	fn correctly_decodes_a_precert_entry() {
+		setup();
+
+		let json_entries = format!(r#"{{"entries":[{{"leaf_input":"{}","extra_data":"{}"}}]}}"#, b64.encode(include_bytes!("../test_vectors/precert_merkle_tree_leaf")), b64.encode(include_bytes!("../test_vectors/precert_extra_data")));
+
+		let decoded_entries: GetEntries = serde_json::from_str(&json_entries).unwrap();
+		let TreeLeafEntry::TimestampedEntry(te_entry) = &decoded_entries.entries[0].leaf_input.entry;
+		assert_eq!(1532471986235, te_entry.timestamp);
+	}
+
+	#[test]
+	fn correctly_decodes_x509_entry_with_empty_extra_data() {
+		setup();
+
+		let json_entries = format!(r#"{{"entries":[{{"leaf_input":"{}","extra_data":"{}"}}]}}"#, b64.encode(include_bytes!("../test_vectors/x509_merkle_tree_leaf")), b64.encode(b"\0\0\0"));
+
+		let decoded_entries: GetEntries = serde_json::from_str(&json_entries).unwrap();
+		let TreeLeafEntry::TimestampedEntry(te_entry) = &decoded_entries.entries[0].leaf_input.entry;
+		assert_eq!(1666198004098, te_entry.timestamp);
+		if let ExtraData::X509ExtraData(extra_data) = &decoded_entries.entries[0].extra_data {
+			assert!(extra_data.certificate_chain.is_empty());
+		} else {
+			panic!("extra_data was not X509ExtraData");
+		}
 	}
 }
