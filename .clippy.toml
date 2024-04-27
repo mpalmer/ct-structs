@@ -1,0 +1,4 @@
+allowed-duplicate-crates = [
+	# These are pending Deku upgrades, https://github.com/sharksforarms/deku/issues/351
+	"syn",
+]

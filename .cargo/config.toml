@@ -77,7 +77,7 @@ rustflags = [
     "-Wunused_lifetimes",
     "-Wunused_macro_rules",
     "-Wunused_qualifications",
-    "-Wunused_tuple_struct_fields",
+    "-Wdead_code",
     "-Aclippy::default_trait_access",
-	"-Aclippy::module_name_repetitions",
+    "-Aclippy::module_name_repetitions",
 ]
