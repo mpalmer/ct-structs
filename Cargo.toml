@@ -18,7 +18,7 @@ edition = "2021"
 parse-tracing = ["deku/logging", "dep:log"]
 
 [dependencies]
-base64 = "0.21"
+base64 = "0.22"
 #deku = "0.16"
 deku = { git = "https://github.com/mpalmer/deku", branch = "id-endian" }
 log = { version = "0.4", optional = true }
